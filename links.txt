@@ -1,0 +1,7 @@
+https://github.com/watson-developer-cloud/python-sdk/blob/master/ibm_watson/websocket/recognize_listener.py
+https://github.com/watson-developer-cloud/python-sdk/blob/master/ibm_watson/speech_to_text_v1.py
+https://pypi.org/project/requests/#files
+https://cloud.ibm.com/apidocs/speech-to-text
+https://cloud.ibm.com/docs/services/speech-to-text?topic=speech-to-text-websockets
+https://cloud.ibm.com/docs/services/speech-to-text?topic=speech-to-text-gettingStarted&cm_mc_uid=92531784173315590665612&cm_mc_sid_50200000=86026101559567143996&cm_mc_sid_52640000=55522321559570599746#gettingStarted
+https://cloud.ibm.com/services/speech-to-text/crn:v1:bluemix:public:speech-to-text:us-south:a%2f8ec152a897374d64824f6151d44f8e4a:ce8b233b-3a02-4654-9e2b-e4118a88f7b9::
