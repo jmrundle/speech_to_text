@@ -1,4 +1,4 @@
-# speech_to_text
+# Speech to Text using IBM-Watson API
 ### Steps to Download Dependencies
 1. Download watson_developer_cloud library
    - add python.exe to the PATH environmental variable
