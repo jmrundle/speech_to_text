@@ -1,10 +1,3 @@
-# Download watson_developer_cloud library
-#   - add python.exe to the PATH environmental variable
-#   - using command line check to see if pip is installed using `pip --version`
-#   - if installed, download watson library using `pip install watson-developer-cloud`
-# Download websockets library
-#   - `pip install ws4py`
-
 from watson_developer_cloud import SpeechToTextV1
 from ws4py.client.threadedclient import WebSocketClient
 import json
