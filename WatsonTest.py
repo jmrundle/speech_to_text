@@ -78,5 +78,6 @@ class User(object):
             print("Error transcribing audio")
 
 
-user = User()
-user.get_transcript('male.wav', model='en-US_NarrowbandModel')
+if __name__ == '__main__':
+    user = User()
+    user.get_transcript('male.wav', model='en-US_NarrowbandModel')
