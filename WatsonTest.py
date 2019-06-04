@@ -1,67 +1,89 @@
-from ibm_watson import SpeechToTextV1
-from os.path import join, dirname
+# Download watson_developer_cloud library
+#   - add python.exe to the PATH environmental variable
+#   - using command line check to see if pip is installed using `pip --version`
+#   - if installed, download watson library using `pip install watson-developer-cloud`
+# Download websockets library
+#   - `pip install ws4py`
+
+from watson_developer_cloud import SpeechToTextV1
+from ws4py.client.threadedclient import WebSocketClient
 import json
 
-# base url for Dallas hosting location
-base_url = "stream.watsonplatform.net"
-# format base url into speech-to-text endpoint 
-URL = "wss://{base_url}/speech-to-text/api/v1/recognize".format(base_url=base_url)
 
-# load api key from json file
-with open("ibm-credentials.json") as file:
-    ibm_credentials = json.load(file)
-    APIKEY = ibm_credentials.get("apiKey")
+class User(object):
+    def __init__(self, 
+                 username=None,
+                 password=None,
+                 api_key=None,
+                 json_file="ibm-credentials.json"):
+        """
+        Three ways to connect with Watson API:
+            1. pass your IBM API key into User class initialization
+            2. pass your IBM username and password into User class initialization
+            3. fill login credentials into ibm-credentials.json file within directory
+        """
+        self.username = username
+        self.password = password
+        self.api_key = api_key
 
-# speech to text object
-speech_to_text = SpeechToTextV1(
-    iam_apikey=APIKEY,
-    url=KEY
-)
+        if api_key is None and (username is None or password is None):
+            self.import_credentials_from_json(json_file)
+        else:
+            raise ValueError('Login requires a username-password combo or an API key')
 
-class AudioSource(object):
-    def __init__(self, input, is_recording=False, is_buffer=False):
-        self.input = input
-        self.is_recording = is_recording
-        self.is_buffer = is_buffer
-    def completed_recording(self):
-        self.is_recording = False
+    def import_credentials_from_json(self, json_file):
+        """checks ibm-credentials.json file for Watson-API login credentials"""
+        try:
+            with open(json_file) as file:
+                try:
+                    ibm_credentials = json.load(file)
+                except AttributeError:
+                    raise ValueError('File is not in JSON format')
+                self.api_key = ibm_credentials.get("apiKey")
+                self.username = ibm_credentials.get("username")
+                self.password = ibm_credentials.get("password")
+        except FileNotFoundError:
+            raise ValueError('JSON file not found.  Fill your login credentials into the ibm-credentials.json file.')
 
-# customized callback functions
-class RecognizeCallback(object):
-    def __init__(self):
-        pass
+    def recognize_upload(self, audio, **kwargs):
+        """gets Watson-API JSON response from an audio file upload"""
+        
+        # filter param input
+        params = kwargs
+        if 'content_type' not in kwargs:
+            params['content_type'] = 'audio/wav'
+        if 'model' not in kwargs:
+            params['model'] = 'en-US_NarrowbandModel' if params['content_type'] == 'audio/mp4' else 'en-US_BroadbandModel'
 
-    def on_data(self, data):
-        print(json.dumps(data, indent=2))
+        self.url = "https://stream.watsonplatform.net/speech-to-text/api/v1/recognize"
+        self.stt = self.get_watson_stt_object()
 
-    def on_error(self, error):
-        print('Error received: {}'.format(error))
+        # open audio file and run analysis using Watson speech-to-text method
+        with open(audio, 'rb') as audio_file:
+            return self.stt.recognize(audio_file, **params).get_result()
 
-    def on_inactivity_timeout(self, error):
-        print('Inactivity timeout: {}'.format(error))
-    
-    def on_transcription(self, transcript):
-        pass
+    def get_watson_stt_object(self):
+        """create Watson speech-to-text object"""
+        stt = None
+        if self.api_key is not None:
+            stt = SpeechToTextV1(
+                iam_apikey=self.api_key)
+        elif self.username is not None and self.password is not None:
+            stt = SpeechToTextV1(
+                username=self.username,
+                password=self.password)
+        return stt
 
-    def on_connected(self):
-        pass
+    def get_transcript(self, audio, **kwargs):
+        """Transcribes audio from a file upload"""
+        response = self.recognize_upload(audio, **kwargs)
+        try:
+            transcript = response["results"][0]["alternatives"][0]["transcript"]
+            print(transcript)
+            return transcript
+        except KeyError:
+            print("Error transcribing audio")
 
-    def on_listening(self):
-        pass
 
-    def on_hypothesis(self, hypothesis):
-        pass
-
-    def on_close(self):
-        pass
-
-RecognizeCallback = RecognizeCallback()
-
-with open(join(dirname(__file__), './.', 'en-US_Broadband_sample1.wav'),
-              'rb') as audio_file:
-    audio_source = AudioSource(audio_file)
-    speech_to_text.recognize_using_websocket(
-        audio=audio_source,
-        content_type='audio/wav',
-        recognize_callback=RecognizeCallback,
-        model='en-US_BroadbandModel')
+user = User()
+user.get_transcript('male.wav', model='en-US_NarrowbandModel')
