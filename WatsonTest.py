@@ -56,7 +56,6 @@ class User(object):
         with open(audio, 'rb') as audio_file:
             return self.stt.recognize(audio_file, **params).get_result()
 
-
     def get_watson_stt_object(self):
         """create Watson speech-to-text object"""
         stt = None
