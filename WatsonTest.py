@@ -117,7 +117,7 @@ def get_file_names(extension):
     """Gets all file names of a specified extension within the working directory"""
     import os
     # get names of all files within current directory
-    directory = os.listdir()
+    directory = list(map(lambda path: 'audio/'+path, os.listdir('audio/')))
     # split each file into filename and filetype
     files = list(map(os.path.splitext, directory))
     # only keep files of desired file_type
