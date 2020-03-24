@@ -1,9 +1,14 @@
+#!/usr/bin/env python3
+
 from watson_developer_cloud import SpeechToTextV1
 import json
 import os
+import sys
 
 
 class WatsonWrapper(object):
+    url = "https://stream.watsonplatform.net/speech-to-text/api/v1/recognize"
+
     def __init__(self, 
                  username=None,
                  password=None,
@@ -25,7 +30,10 @@ class WatsonWrapper(object):
 
         # raise error if json_file did not have necessary information
         if api_key is None and (username is None or password is None):
-            raise ValueError('Login requires a username-password combo or an API key')
+            print("Login requires a username-password combo or an API key")
+            sys.exit(1)
+
+        self.stt = self.get_watson_stt_object()
 
     def import_credentials_from_json(self, json_file):
         """checks ibm-credentials.json file for Watson-API login credentials"""
@@ -34,14 +42,16 @@ class WatsonWrapper(object):
                 try:
                     ibm_credentials = json.load(file)
                 except AttributeError:
-                    raise ValueError('File is not in JSON format')
+                    print("File is not in JSON format")
+                    sys.exit(1)
 
                 self.api_key = ibm_credentials.get("apiKey")
                 self.username = ibm_credentials.get("username")
                 self.password = ibm_credentials.get("password")
 
         except FileNotFoundError:
-            raise ValueError('JSON file not found.  Fill your login credentials into the ibm-credentials.json file.')
+            print("JSON file not found.  Fill your login credentials into the ibm-credentials.json file.")
+            sys.exit(1)
 
     def recognize_upload(self, audio, params={}):
         """gets Watson-API JSON response from an audio file upload"""
@@ -51,9 +61,6 @@ class WatsonWrapper(object):
             params['content_type'] = 'audio/wav'
         if 'model' not in params:
             params['model'] = 'en-US_NarrowbandModel' if params['content_type'] == 'audio/mp4' else 'en-US_BroadbandModel'
-        
-        self.url = "https://stream.watsonplatform.net/speech-to-text/api/v1/recognize"
-        self.stt = self.get_watson_stt_object()
 
         # open audio file and run analysis using Watson speech-to-text method
         with open(audio, 'rb') as audio_file:
@@ -78,10 +85,10 @@ class WatsonWrapper(object):
         """Transcribes audio from a file upload"""
         response = self.recognize_upload(audio, params=kwargs)
         try:
-            transcript = response["results"][0]["alternatives"][0]["transcript"]
-            return transcript
+            return response["results"][0]["alternatives"][0]["transcript"]
         except KeyError:
             print("Error transcribing audio")
+            sys.exit(2)
 
     def get_speaker_transcript(self, audio, **kwargs):
         """Seperates audio into an array of speakers and transcript"""
@@ -119,19 +126,32 @@ class WatsonWrapper(object):
         return transcript
 
 
-def get_file_names(file_type, directory="audio"):
-    """Gets all file names of a specified extension within the working directory"""
-
+def _get_file_names(file_type, directory="."):
+    """Returns iterator (map object) of all file names with a specified extension within specified directory"""
     # read in all files within dir
-    entries = os.scandir(directory)
+    try:
+        entries = os.listdir(directory)
+    except OSError:
+        print(f"Specified audio directory ({directory}) does not exist")
+        sys.exit(3)
 
-    # return all files of specified type
-    return filter(lambda f: os.path.splitext(f)[1] == file_type, entries)
-    
+    # all files of specified type
+    files = filter(lambda f: os.path.splitext(f)[1] == file_type, entries)
+
+    # prepend directory name
+    return map(lambda f: os.path.join(directory, f), files)
+
+
+def get_audio_files(file_type=".wav", directory="audio"):
+    return _get_file_names(file_type, directory)
+
 
 if __name__ == '__main__':
-    user = User()
-    for file_name in get_file_names('.wav'):
+    wrapper = WatsonWrapper()
+
+    for file_name in get_audio_files():
         print('Processing ' + file_name + '...\n')
-        user.get_speaker_transcript(file_name)
+
+        wrapper.get_speaker_transcript(file_name)
+
         print('\n')
